@@ -28,10 +28,20 @@ export type Pose = Record<PartName, PartTransform>;
 export interface Hole {
   x: number;
   y: number;
-  r: number;
+  hit: boolean;
 }
 
-export type Phase = 'orient' | 'shoot' | 'result';
+export type Phase = 'intro' | 'orient' | 'shoot' | 'result';
+
+export type Heat = 1 | 2;
+
+/** Sudden-death context for a session (null during normal heats). */
+export interface SdInfo {
+  round: number;
+  half: 1 | 2;
+  /** Second half only: did the first shooter hit this round? */
+  firstHalfHit: boolean | null;
+}
 
 export interface ShotResult {
   x: number;
@@ -40,8 +50,29 @@ export interface ShotResult {
   part: PartName | null;
   isHeadshot: boolean;
   hitCount: number; // accumulated body hits this session
+  shotsLeft: number;
   killed: boolean;
-  shotsRemaining: number;
+}
+
+export interface MatchEndPayload {
+  youWin: boolean;
+  yourTurns: number | null;
+  oppTurns: number | null;
+  suddenDeath: boolean;
+  forfeit: boolean;
+}
+
+export interface SnapshotPayload {
+  youAre: Role;
+  heat: Heat;
+  turn: number;
+  phase: Phase;
+  endsAt: number;
+  holes: Hole[];
+  hitCount: number;
+  shotsLeft: number;
+  sd: SdInfo | null;
+  paused: boolean;
 }
 
 // ---------- Error codes ----------
@@ -76,21 +107,21 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   room_state: (payload: RoomStatePayload) => void;
-  match_start: (payload: { youAre: Role; firstShooter: Role }) => void;
+  /** A new shooter session begins (heat 1, heat 2, or a sudden-death half). */
+  session_start: (payload: { youAre: Role; heat: Heat; sd: SdInfo | null }) => void;
   phase_change: (payload: { phase: Phase; turn: number; endsAt: number }) => void;
   pose_broadcast: (payload: { pose: Pose }) => void;
   shot_result: (payload: ShotResult) => void;
-  session_end: (payload: { turnsUsed: number }) => void;
-  role_swap: (payload: { youAre: Role; heat: 1 | 2 }) => void;
-  sudden_death_start: (payload: { firstShooter: Role }) => void;
-  match_end: (payload: {
-    winnerId: string;
-    turnsA: number;
-    turnsB: number;
-    suddenDeath: boolean;
-  }) => void;
+  /** A heat session ended (the hider was killed). */
+  session_end: (payload: { turnsUsed: number; byHeadshot: boolean }) => void;
+  /** A sudden-death half concluded. */
+  sd_half_end: (payload: { round: number; half: 1 | 2; hit: boolean }) => void;
+  match_end: (payload: MatchEndPayload) => void;
   opponent_disconnected: (payload: { graceEndsAt: number }) => void;
   opponent_reconnected: () => void;
+  /** Full state resync after a reconnect. */
+  game_snapshot: (payload: SnapshotPayload) => void;
+  rematch_state: (payload: { votes: number }) => void;
   error: (payload: ErrorPayload) => void;
 }
 
@@ -109,8 +140,12 @@ export const ROOM_CODE_LENGTH = 6;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export const ORIENT_PHASE_MS = 10_000;
-export const SHOOT_PHASE_MS = 10_000;
+export const SHOOT_PHASE_MS = 20_000;
 export const SHOTS_PER_TURN = 3;
 export const BODY_HITS_TO_KILL = 3;
 export const DISCONNECT_GRACE_MS = 45_000;
 export const POSE_RATE_HZ = 15;
+
+export const SESSION_INTRO_MS = 2_500;
+export const RESULT_PHASE_MS = 2_000;
+export const INTERSTITIAL_MS = 3_000;

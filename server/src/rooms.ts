@@ -5,7 +5,7 @@ import {
 } from '../../shared/protocol.js';
 
 export interface RoomPlayer {
-  id: string; // stable player id (socket id for now)
+  id: string; // stable player id (survives reconnects)
   connected: boolean;
 }
 
@@ -21,6 +21,7 @@ const ROOM_IDLE_TTL_MS = 10 * 60 * 1000; // teardown after 10 min idle (PRD §8)
 
 export class RoomRegistry {
   private rooms = new Map<string, Room>();
+  private playerRoom = new Map<string, string>(); // playerId → room code
 
   createRoom(): Room {
     let code: string;
@@ -43,19 +44,33 @@ export class RoomRegistry {
     return this.rooms.get(code.toUpperCase());
   }
 
+  roomOfPlayer(playerId: string): Room | undefined {
+    const code = this.playerRoom.get(playerId);
+    return code ? this.rooms.get(code) : undefined;
+  }
+
   addPlayer(room: Room, playerId: string): 'ok' | 'full' {
     if (room.players.length >= 2) return 'full';
     room.players.push({ id: playerId, connected: true });
+    this.playerRoom.set(playerId, room.code);
     room.lastActivityAt = Date.now();
     return 'ok';
   }
 
   removePlayer(room: Room, playerId: string): void {
     room.players = room.players.filter((p) => p.id !== playerId);
+    this.playerRoom.delete(playerId);
     room.lastActivityAt = Date.now();
+    if (room.players.length < 2) room.status = 'waiting';
     if (room.players.length === 0) {
       this.rooms.delete(room.code);
     }
+  }
+
+  setConnected(room: Room, playerId: string, connected: boolean): void {
+    const p = room.players.find((pl) => pl.id === playerId);
+    if (p) p.connected = connected;
+    room.lastActivityAt = Date.now();
   }
 
   touch(room: Room): void {
@@ -70,13 +85,14 @@ export class RoomRegistry {
     };
   }
 
-  /** Remove rooms idle past TTL. Returns removed codes. */
-  sweep(now = Date.now()): string[] {
-    const removed: string[] = [];
+  /** Remove rooms idle past TTL. Returns removed rooms. */
+  sweep(now = Date.now()): Room[] {
+    const removed: Room[] = [];
     for (const [code, room] of this.rooms) {
       if (now - room.lastActivityAt > ROOM_IDLE_TTL_MS) {
+        for (const p of room.players) this.playerRoom.delete(p.id);
         this.rooms.delete(code);
-        removed.push(code);
+        removed.push(room);
       }
     }
     return removed;

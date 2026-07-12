@@ -58,7 +58,7 @@ decision.
 |---|---|---|
 | **Goal** | Kill the Hider in as few turns as possible | Survive as many turns as possible |
 | **Sees** | Blank wall + all existing holes; the Hider is visible only through those holes (real-time) | Their own body + the holes (as light coming through); knows which body parts are currently exposed |
-| **Acts** | Fires up to 3 shots during the 10s shoot phase | Continuously repositions limbs (IK ragdoll) during both phases |
+| **Acts** | Fires up to 3 shots during the 20s shoot phase | Continuously repositions limbs (IK ragdoll) during both phases |
 | **Skill** | Timing, memory of the Hider's habits, using peepholes to hunt the head | Reading the hole pattern, keeping vitals covered, unpredictability |
 
 Both players play **both roles** over the course of a match (see §6).
@@ -73,7 +73,7 @@ Each **turn** has two sequential phases:
 
 1. **Orient phase — 10 seconds.** Only the Hider acts, repositioning their limbs.
    The Shooter waits and plans (they see the wall + existing holes but cannot fire).
-2. **Shoot phase — 10 seconds.** The Shooter fires **up to 3 shots**, at moments of
+2. **Shoot phase — 20 seconds.** The Shooter fires **up to 3 shots**, at moments of
    their choosing within the window. **The Hider keeps moving the entire time** and
    reacts to nothing but the holes already on the wall.
 
@@ -187,7 +187,7 @@ COIN_TOSS
 HEAT
   ├─ TURN_ORIENT (10s, hider only)
   │     └─ timer expires → TURN_SHOOT
-  ├─ TURN_SHOOT  (10s, shooter fires ≤3; hider moving)
+  ├─ TURN_SHOOT  (20s, shooter fires ≤3; hider moving)
   │     ├─ kill (3rd body hit OR headshot) → SESSION_END
   │     └─ timer expires, no kill           → TURN_RESULT
   ├─ TURN_RESULT (brief) → next TURN_ORIENT (turn++)
@@ -386,23 +386,29 @@ Pose {
 
 Each phase is independently demoable.
 
-- **Phase 0 — Scaffold & deploy.** Vite+React+TS front, Express+Socket.IO back, shared
-  types, `render.yaml`. Deploy a "hello world" to Render; **prove WebSockets work in
-  prod** end-to-end.
-- **Phase 1 — Rooms.** Create/join by 6-char code, waiting room, 2-player presence,
-  reject 3rd, basic disconnect handling.
-- **Phase 2 — 3D scene & IK (local only).** Wall, Hider ragdoll with draggable IK
-  limbs, both role cameras. No networking of pose yet.
-- **Phase 3 — Turn state machine & timers.** Server-authoritative orient/shoot phases,
-  turn counter, phase broadcasts.
-- **Phase 4 — Shooting & holes & visibility.** Shooter aims/fires, holes created and
-  persisted, Hider pose streamed to Shooter, occlusion-through-holes rendering.
-- **Phase 5 — Hits & kills.** Server adjudication, 3-body-hit rule, headshot instakill,
-  session end + turns-used recording.
-- **Phase 6 — Full match flow.** Role swap, heat comparison, sudden death, coin tosses,
-  win screen, rematch.
-- **Phase 7 — Polish & hardening.** Sound/feedback, hole visuals, reconnection UX,
-  desktop-only gate, edge cases, optional wallhack culling.
+> **Build-order note (2026-07-12):** after Phase 1 we built the full game loop as a
+> **2D vertical slice first** (Phases 3–6 with SVG placeholder rendering — draggable
+> IK body, wall with peephole clipping) so the game was playable end-to-end ASAP.
+> Phase 2's 3D scene is now a **visual upgrade** on top of unchanged game logic.
+
+- **Phase 0 — Scaffold & deploy.** ✅ Vite+React+TS front, Express+Socket.IO back,
+  shared types, `render.yaml`. WebSockets proven end-to-end.
+- **Phase 1 — Rooms.** ✅ Create/join by 6-char code, waiting room, 2-player presence,
+  reject 3rd, disconnect handling, reconnect-by-identity (per-tab session id).
+- **Phase 2 — 3D scene & IK.** ✅ Three.js (react-three-fiber): extruded wall with
+  real hole geometry (true occlusion), capsule body from the shared pose model,
+  raycast aiming, 3D drag handles, per-side lighting. One persistent Canvas per
+  match (scene swap on role change) to avoid WebGL context loss.
+- **Phase 3 — Turn state machine & timers.** ✅ Server-authoritative orient/shoot/result
+  phases, turn counter, phase broadcasts, pause/resume on disconnect.
+- **Phase 4 — Shooting & holes & visibility.** ✅ (2D form) Shooter aims/fires, holes
+  persist, Hider pose streamed, peephole clipping on the Shooter's view.
+- **Phase 5 — Hits & kills.** ✅ Server adjudication (limbs shield head, head before
+  torso), 3-body-hit rule, headshot instakill, session end + turns-used recording.
+- **Phase 6 — Full match flow.** ✅ Role swap, heat comparison, sudden death (washes
+  repeat, decisive round ends), coin tosses, win/lose screens, rematch voting.
+- **Phase 7 — Polish & hardening.** Sound/feedback, hole visuals, reconnection UX
+  polish, desktop-only gate, edge cases, optional wallhack culling.
 
 ---
 
