@@ -1,0 +1,126 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #14151a;
+  color: #e8e6e3;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 0.35em;
+  font-weight: 800;
+}
+
+.conn {
+  font-size: 12px;
+}
+.conn.ok {
+  color: #6fd08c;
+}
+.conn.bad {
+  color: #e06c5c;
+}
+
+.card {
+  background: #1e2027;
+  border: 1px solid #2c2f38;
+  border-radius: 12px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.tagline {
+  margin: 0;
+  color: #9a978f;
+}
+
+button {
+  font: inherit;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #3a3e4a;
+  background: #262933;
+  color: inherit;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background: #303443;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: #b3402e;
+  border-color: #b3402e;
+  font-weight: 700;
+}
+button.primary:hover:not(:disabled) {
+  background: #c94b37;
+}
+
+.divider {
+  color: #6b6862;
+  font-size: 13px;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.join-row input {
+  flex: 1;
+  font: inherit;
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #3a3e4a;
+  background: #14151a;
+  color: inherit;
+}
+
+.error {
+  margin: 0;
+  color: #e06c5c;
+  font-size: 14px;
+}
+
+.room-code {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  padding: 16px 0 16px 0.4em; /* offset trailing letter-spacing to keep it centered */
+  background: #14151a;
+  border-radius: 8px;
+  user-select: all;
+}
+
+.players {
+  margin: 0;
+  color: #9a978f;
+}

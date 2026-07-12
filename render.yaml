@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: wallflower
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
